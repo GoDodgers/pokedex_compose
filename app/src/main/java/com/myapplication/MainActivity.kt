@@ -2,23 +2,35 @@ package com.myapplication
 
 import android.annotation.SuppressLint
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.filled.AddBox
 import androidx.compose.material.icons.filled.BackHand
+import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.rounded.AccountCircle
+import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.sharp.AccountBalance
 import androidx.compose.material.icons.sharp.AccountCircle
 import androidx.compose.material.icons.sharp.Bolt
@@ -33,17 +45,33 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SearchBar
+import androidx.compose.material3.SearchBarColors
+import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextFieldColors
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.invisibleToUser
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextLayoutResult
@@ -56,12 +84,14 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import com.pokedex.MainViewModel
 import kotlinx.serialization.Serializable
 
 private val generations: List<String> = listOf(
@@ -93,6 +123,10 @@ class MainActivity : ComponentActivity() {
                         }
                         composable <GenPokeList> {
                             val args =  it.toRoute<GenPokeList>()
+                            var isSearchActive by rememberSaveable {
+                                mutableStateOf(false)
+                            }
+
                             Column (
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.Center
@@ -102,7 +136,7 @@ class MainActivity : ComponentActivity() {
                                     modifier = Modifier,
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text(args.gen)
+                                    PokemonList(gen = args.gen, isSearchActive, { isSearchActive = it })
                                 }
                             }
                         }
@@ -110,6 +144,117 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PokemonList(gen: String, isSearchActive: Boolean, onActiveChange: (Boolean) -> Unit) {
+    val viewModel = MainViewModel()
+    val isSearching by viewModel.isSearching.collectAsState()
+    val pokemonList by viewModel.pokemonList.collectAsState()
+
+    var searchQuery by rememberSaveable { mutableStateOf("") }
+
+    Scaffold (
+        modifier = Modifier,
+        topBar = {
+            TopAppBar(
+                modifier = Modifier
+                    .padding(horizontal = 16.dp)
+                    .background(
+                        Color.White,
+                        RoundedCornerShape(bottomStart = 25.dp, bottomEnd = 25.dp)
+                    )
+                    .clip(RoundedCornerShape(25.dp)),
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                ),
+                title = {
+                    SearchBar(
+                        placeholder = { Text(text = gen) },
+                        modifier = Modifier
+                            .padding(bottom = 10.dp),
+                        query = searchQuery,
+                        onQueryChange = {
+                            searchQuery = it
+                            viewModel.onSearchTextChange(it)
+                        },
+                        onSearch = viewModel::onSearchTextChange,
+                        active = isSearching,
+                        onActiveChange = onActiveChange,
+                        colors = SearchBarDefaults.colors(
+                            containerColor = Color.LightGray
+                        )
+                    ) {}
+                },
+                navigationIcon = {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                        modifier = Modifier
+                            .padding(start = 16.dp, end = 8.dp)
+                            .size(26.dp),
+                        contentDescription = "content description"
+                    )
+                },
+                actions = {
+                    if (!isSearchActive) {
+                        Icon(
+                            imageVector = Icons.Rounded.Info,
+                            modifier = Modifier
+                                .padding(end = 8.dp)
+                                .size(32.dp),
+                            contentDescription = "content description"
+                        )
+                        Icon(
+                            imageVector = Icons.Rounded.AccountCircle,
+                            modifier = Modifier
+                                .padding(end = 8.dp)
+                                .size(32.dp),
+                            contentDescription = "content description"
+                        )
+                    } else {
+                        Icon(imageVector = Icons.Default.Cancel, contentDescription = "cancel search")
+                    }
+                }
+            )
+        },
+    ) { paddingValues ->
+
+        LazyColumn (
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            contentPadding = paddingValues,
+        ) {
+            val filteredPokeList = pokemonList.toMutableList().filter { searchQuery in it.first }
+
+            items(filteredPokeList.size) { i ->
+
+                Spacer(modifier = Modifier.height(8.dp))
+                Box(
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp)
+                        .height(200.dp)
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(25.dp))
+                        .background(MaterialTheme.colorScheme.inversePrimary),
+                ) {
+                    val poke = pokemonList.elementAt(i)
+                    Row (modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                        Text(text = poke.first)
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Image(
+                        modifier = Modifier
+                            .size(width = LocalConfiguration.current.screenWidthDp.dp, height = (LocalConfiguration.current.screenHeightDp.dp * 0.25f)),
+                        painter = painterResource(id = filteredPokeList[i].second),
+                        contentDescription = stringResource(id = R.string.app_name)
+                    )
+
+                }
+            }
+        }
+
     }
 }
 
