@@ -194,27 +194,30 @@ fun PokemonList(gen: String, isSearchActive: Boolean, onActiveChange: (Boolean) 
                         modifier = Modifier
                             .padding(start = 16.dp, end = 8.dp)
                             .size(26.dp),
-                        contentDescription = "content description"
+                        contentDescription = "Homepage"
                     )
                 },
                 actions = {
-                    if (!isSearchActive) {
+                    if (isSearchActive) {
+                        Icon(
+                            imageVector = Icons.Default.Cancel,
+                            contentDescription = "cancel search"
+                        )
+                    } else {
                         Icon(
                             imageVector = Icons.Rounded.Info,
                             modifier = Modifier
                                 .padding(end = 8.dp)
                                 .size(32.dp),
-                            contentDescription = "content description"
+                            contentDescription = "$gen info"
                         )
                         Icon(
                             imageVector = Icons.Rounded.AccountCircle,
                             modifier = Modifier
                                 .padding(end = 8.dp)
                                 .size(32.dp),
-                            contentDescription = "content description"
+                            contentDescription = "account info"
                         )
-                    } else {
-                        Icon(imageVector = Icons.Default.Cancel, contentDescription = "cancel search")
                     }
                 }
             )
@@ -295,13 +298,13 @@ fun HomeScreen(
 fun TopBar() {
     CenterAlignedTopAppBar(
         modifier = Modifier
-            .background(MaterialTheme.colorScheme.primary),
+            .background(MaterialTheme.colorScheme.primaryContainer),
         title = {
             Text(
                 text = "Pokedéx",
-                fontFamily = MaterialTheme.typography.displayLarge.fontFamily,
+                fontFamily = MaterialTheme.typography.displayMedium.fontFamily,
                 fontSize = MaterialTheme.typography.displayMedium.fontSize,
-                color = MaterialTheme.colorScheme.onSecondaryContainer
+                color = MaterialTheme.colorScheme.onPrimaryContainer
             )
         },
         navigationIcon = {
@@ -331,19 +334,19 @@ fun BottomBar() {
             IconButton(onClick = { /*TODO*/ }) {
                 Icon(
                     imageVector = Icons.Default.Share,
-                    contentDescription = "content description"
+                    contentDescription = "share"
                 )
             }
             IconButton(onClick = { /*TODO*/ }) {
                 Icon(
                     imageVector = Icons.Default.FavoriteBorder,
-                    contentDescription = "content description"
+                    contentDescription = "favorite"
                 )
             }
             IconButton(onClick = { /*TODO*/ }) {
                 Icon(
                     imageVector = Icons.Default.AddBox,
-                    contentDescription = "content description"
+                    contentDescription = "add"
                 )
             }
         },
@@ -351,7 +354,7 @@ fun BottomBar() {
             FloatingActionButton(onClick = { /*TODO*/ }) {
                 Icon(
                     imageVector = Icons.Default.BackHand,
-                    contentDescription = "Call contact"
+                    contentDescription = "stop"
                 )
             }
         }
