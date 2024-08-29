@@ -70,6 +70,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.invisibleToUser
@@ -136,7 +137,7 @@ class MainActivity : ComponentActivity() {
                                     modifier = Modifier,
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    PokemonList(gen = args.gen, isSearchActive, { isSearchActive = it })
+                                    PokemonList(gen = args.gen, navController = navController, isSearchActive, { isSearchActive = it })
                                 }
                             }
                         }
@@ -149,12 +150,14 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PokemonList(gen: String, isSearchActive: Boolean, onActiveChange: (Boolean) -> Unit) {
+fun PokemonList(gen: String, navController: NavController, isSearchActive: Boolean, onActiveChange: (Boolean) -> Unit) {
     val viewModel = MainViewModel()
     val isSearching by viewModel.isSearching.collectAsState()
     val pokemonList by viewModel.pokemonList.collectAsState()
 
     var searchQuery by rememberSaveable { mutableStateOf("") }
+
+    val focusManager = LocalFocusManager.current
 
     Scaffold (
         modifier = Modifier,
@@ -189,20 +192,32 @@ fun PokemonList(gen: String, isSearchActive: Boolean, onActiveChange: (Boolean) 
                     ) {}
                 },
                 navigationIcon = {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                        modifier = Modifier
-                            .padding(start = 16.dp, end = 8.dp)
-                            .size(26.dp),
-                        contentDescription = "Homepage"
-                    )
+                    IconButton(
+                        onClick = {
+                            navController.navigate(HomeGenList)
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                            modifier = Modifier
+                                .padding(start = 16.dp, end = 8.dp)
+                                .size(26.dp),
+                            contentDescription = "Homepage"
+                        )
+                    }
                 },
                 actions = {
                     if (isSearchActive) {
-                        Icon(
-                            imageVector = Icons.Default.Cancel,
-                            contentDescription = "cancel search"
-                        )
+                        IconButton(
+                            onClick = {
+                                focusManager.clearFocus()
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Cancel,
+                                contentDescription = "cancel search"
+                            )
+                        }
                     } else {
                         Icon(
                             imageVector = Icons.Rounded.Info,
@@ -232,7 +247,6 @@ fun PokemonList(gen: String, isSearchActive: Boolean, onActiveChange: (Boolean) 
             val filteredPokeList = pokemonList.toMutableList().filter { searchQuery in it.first }
 
             items(filteredPokeList.size) { i ->
-
                 Spacer(modifier = Modifier.height(8.dp))
                 Box(
                     modifier = Modifier
@@ -365,14 +379,17 @@ fun BottomBar() {
 fun GenerationList(navController: NavController, paddingValues: PaddingValues) {
     Box(
         modifier = Modifier
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
             .fillMaxSize()
             .padding(paddingValues), contentAlignment = Alignment.Center
     ) {
         Column {
             for (gen in generations) {
                 Row (
+//                    modifier = Modifier
                     modifier = Modifier
-                        .fillMaxWidth(),
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.secondaryContainer),
                     horizontalArrangement = Arrangement.Center
                 ) {
                     TextButton(
@@ -386,7 +403,7 @@ fun GenerationList(navController: NavController, paddingValues: PaddingValues) {
                             text = gen,
                             fontFamily = MaterialTheme.typography.displayMedium.fontFamily,
                             fontSize = MaterialTheme.typography.displayMedium.fontSize,
-                            color = MaterialTheme.colorScheme.outline
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
                     }
                 }
