@@ -8,6 +8,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,6 +39,7 @@ import androidx.compose.material.icons.sharp.Lightbulb
 import androidx.compose.material.icons.sharp.Menu
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -67,6 +69,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalConfiguration
@@ -75,6 +81,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.invisibleToUser
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -93,6 +100,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.pokedex.MainViewModel
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 
 private val generations: List<String> = listOf(
@@ -137,7 +145,7 @@ class MainActivity : ComponentActivity() {
                                     modifier = Modifier,
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    PokemonList(gen = args.gen, navController = navController, isSearchActive, { isSearchActive = it })
+                                    PokemonList(gen = args.gen, context = this@MainActivity, navController = navController, isSearchActive, { isSearchActive = it })
                                 }
                             }
                         }
@@ -150,7 +158,7 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PokemonList(gen: String, navController: NavController, isSearchActive: Boolean, onActiveChange: (Boolean) -> Unit) {
+fun PokemonList(gen: String, context: MainActivity, navController: NavController, isSearchActive: Boolean, onActiveChange: (Boolean) -> Unit) {
     val viewModel = MainViewModel()
     val isSearching by viewModel.isSearching.collectAsState()
     val pokemonList by viewModel.pokemonList.collectAsState()
@@ -174,22 +182,40 @@ fun PokemonList(gen: String, navController: NavController, isSearchActive: Boole
                     containerColor = MaterialTheme.colorScheme.primaryContainer
                 ),
                 title = {
-                    SearchBar(
-                        placeholder = { Text(text = gen) },
-                        modifier = Modifier
-                            .padding(bottom = 10.dp),
-                        query = searchQuery,
-                        onQueryChange = {
-                            searchQuery = it
-                            viewModel.onSearchTextChange(it)
-                        },
-                        onSearch = viewModel::onSearchTextChange,
-                        active = isSearching,
-                        onActiveChange = onActiveChange,
-                        colors = SearchBarDefaults.colors(
-                            containerColor = Color.LightGray
-                        )
-                    ) {}
+                    Box(modifier = Modifier.padding(horizontal = 4.dp)) {
+                        SearchBar(
+                            placeholder = {
+                                Text(
+                                    text = gen,
+                                    textAlign = TextAlign.Center,
+                                    fontSize = MaterialTheme.typography.titleSmall.fontSize,
+                                    fontWeight = MaterialTheme.typography.titleSmall.fontWeight,
+                                    fontStyle = MaterialTheme.typography.titleSmall.fontStyle,
+                                    color =  MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            },
+                            modifier = Modifier
+                                .padding(horizontal = 6.dp)
+                                .border(
+                                    width = 2.dp,
+                                    color = Color.White,
+                                    shape = RoundedCornerShape(50.dp)
+                                ),
+                            query = searchQuery,
+                            onQueryChange = {
+                                searchQuery = AnnotatedString(it).toString()
+                                viewModel.onSearchTextChange(it)
+                            },
+                            onSearch = viewModel::onSearchTextChange,
+                            active = isSearching,
+                            onActiveChange = onActiveChange,
+                            colors = SearchBarDefaults.colors(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                dividerColor = Color.White,
+                                inputFieldColors = TextFieldDefaults.colors().copy()
+                            )
+                        ) {}
+                    }
                 },
                 navigationIcon = {
                     IconButton(
@@ -210,6 +236,7 @@ fun PokemonList(gen: String, navController: NavController, isSearchActive: Boole
                     if (isSearchActive) {
                         IconButton(
                             onClick = {
+                                searchQuery = ""
                                 focusManager.clearFocus()
                             }
                         ) {
@@ -240,12 +267,12 @@ fun PokemonList(gen: String, navController: NavController, isSearchActive: Boole
     ) { paddingValues ->
 
         LazyColumn (
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
             contentPadding = paddingValues,
         ) {
             val filteredPokeList = pokemonList.toMutableList().filter { searchQuery in it.first }
-
             items(filteredPokeList.size) { i ->
                 Spacer(modifier = Modifier.height(8.dp))
                 Box(
@@ -271,7 +298,6 @@ fun PokemonList(gen: String, navController: NavController, isSearchActive: Boole
                 }
             }
         }
-
     }
 }
 
@@ -312,7 +338,9 @@ fun HomeScreen(
 fun TopBar() {
     CenterAlignedTopAppBar(
         modifier = Modifier
-            .background(MaterialTheme.colorScheme.primaryContainer),
+            .background(
+                MaterialTheme.colorScheme.primaryContainer
+            ),
         title = {
             Text(
                 text = "Pokedéx",
